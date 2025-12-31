@@ -1,0 +1,11 @@
+{
+  "name": "context-hub-plugin",
+  "description": "Unified context retrieval from Forgetful Memory, Context7 docs, and Serena symbol analysis",
+  "version": "1.0.0",
+  "author": {
+    "name": "Scott Raisbeck",
+    "url": "https://github.com/ScottRBK"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/ScottRBK/context-hub-plugin"
+}

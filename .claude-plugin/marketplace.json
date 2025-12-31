@@ -1,0 +1,55 @@
+{
+  "name": "forgetful-plugins",
+  "owner": {
+    "name": "Scott Raisbeck",
+    "email": "scott_raisbeck1337@hotmail.com"
+  },
+  "plugins": [
+    {
+      "name": "forgetful-plugin",
+      "source": {
+        "source": "github",
+        "repo": "ScottRBK/forgetful-plugin"
+      },
+      "description": "Semantic memory for Claude Code using Zettelkasten principles",
+      "version": "1.0.0",
+      "author": {
+        "name": "Scott Raisbeck"
+      },
+      "repository": "https://github.com/ScottRBK/forgetful-plugin",
+      "license": "MIT",
+      "keywords": [
+        "memory",
+        "zettelkasten",
+        "mcp",
+        "forgetful",
+        "knowledge-base"
+      ],
+      "category": "productivity"
+    },
+    {
+      "name": "context-hub-plugin",
+      "source": {
+        "source": "github",
+        "repo": "ScottRBK/context-hub-plugin"
+      },
+      "description": "Unified context retrieval from Forgetful Memory, Context7 docs, and Serena symbol analysis",
+      "version": "1.0.0",
+      "author": {
+        "name": "Scott Raisbeck"
+      },
+      "repository": "https://github.com/ScottRBK/context-hub-plugin",
+      "license": "MIT",
+      "keywords": [
+        "context",
+        "memory",
+        "documentation",
+        "context7",
+        "serena",
+        "forgetful",
+        "code-analysis"
+      ],
+      "category": "productivity"
+    }
+  ]
+}
