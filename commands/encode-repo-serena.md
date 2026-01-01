@@ -90,13 +90,6 @@ Use the current working directory path, or if the project is registered, use its
 
 If activation fails with "No active project", Serena will show available registered projects - pick the matching one or provide the full path.
 
-After activation, check for existing Serena memories:
-```
-mcp__plugin_serena_serena__list_memories()
-```
-
-Read any relevant memories to understand previous analysis.
-
 ### Step 2: Explore Project Structure
 
 ```
@@ -740,7 +733,7 @@ execute_forgetful_tool("create_memory", {
 
 ## Execution Guidelines
 
-1. **Execute phases in order**: 0 → 1 (with notes) → 1B → 2 → 2B → 3 → 4 → 5 → 6 → 6B → 7 → 7B → 8
+1. **Execute phases in order**: 0 → 1 (with notes) → 1B → 2 → 2B → 3 → 4 → 5 → 6 → 6B → 7 → 7B
 2. **Leverage Serena's strengths**: Symbol analysis over text search
 3. **Track relationships**: find_referencing_symbols is powerful - use it
 4. **Aggregate symbol data**: Collect symbols during Phase 2 for use in Phase 6B
