@@ -1,6 +1,5 @@
 ---
 description: Configure Context Hub dependencies (Forgetful MCP + plugin prerequisites)
-allowed-tools: Bash, WebFetch, AskUserQuestion
 ---
 
 # Context Hub Setup

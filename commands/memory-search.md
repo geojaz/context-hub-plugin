@@ -1,6 +1,5 @@
 ---
 description: Search memories semantically using Forgetful
-allowed-tools: mcp__forgetful__discover_forgetful_tools, mcp__forgetful__how_to_use_forgetful_tool, mcp__forgetful__execute_forgetful_tool
 ---
 
 # Memory Search

@@ -1,6 +1,5 @@
 ---
 description: Deep exploration of the Forgetful knowledge graph
-allowed-tools: Task
 ---
 
 # Memory Explore

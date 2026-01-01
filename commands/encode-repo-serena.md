@@ -1,8 +1,3 @@
----
-description: Bootstrap a repository into Forgetful's knowledge base using Serena's symbol-level analysis
-allowed-tools: mcp__forgetful__discover_forgetful_tools, mcp__forgetful__how_to_use_forgetful_tool, mcp__forgetful__execute_forgetful_tool, mcp__plugin_serena_serena__get_symbols_overview, mcp__plugin_serena_serena__find_symbol, mcp__plugin_serena_serena__find_referencing_symbols, mcp__plugin_serena_serena__list_dir, mcp__plugin_serena_serena__read_file, mcp__plugin_serena_serena__search_for_pattern, mcp__plugin_serena_serena__list_memories, mcp__plugin_serena_serena__read_memory, mcp__plugin_context7_context7__resolve-library-id, mcp__plugin_context7_context7__query-docs, Bash
----
-
 # Encode Repository (Serena-Enhanced)
 
 Systematically populate the Forgetful knowledge base using Serena's LSP-powered symbol analysis for accurate, comprehensive codebase understanding.
@@ -83,8 +78,19 @@ Parse for:
 
 ### Step 1: Activate Project in Serena
 
-First, check if Serena has any existing memories for this project:
+**CRITICAL**: Serena requires an active project before any operations. Activate it first:
 
+```
+mcp__plugin_serena_serena__activate_project({
+  "project": "<project_path_or_name>"
+})
+```
+
+Use the current working directory path, or if the project is registered, use its name from the known projects list.
+
+If activation fails with "No active project", Serena will show available registered projects - pick the matching one or provide the full path.
+
+After activation, check for existing Serena memories:
 ```
 mcp__plugin_serena_serena__list_memories()
 ```

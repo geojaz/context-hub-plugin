@@ -1,6 +1,5 @@
 ---
 description: Gather comprehensive context from Forgetful Memory, Context7 docs, and web sources before planning or implementation
-allowed-tools: Task
 ---
 
 # Context Retrieval Command
