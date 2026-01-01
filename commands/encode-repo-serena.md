@@ -738,20 +738,6 @@ execute_forgetful_tool("create_memory", {
 
 ---
 
-## Phase 8: Serena Memory (Optional)
-
-Save key findings to Serena's memory for future analysis:
-```
-mcp__plugin_serena_serena__write_memory({
-  "memory_file_name": "project-analysis.md",
-  "content": "# [Project] Analysis Summary\n\n## Key Symbols\n..."
-})
-```
-
-This helps future Serena sessions understand the project faster.
-
----
-
 ## Execution Guidelines
 
 1. **Execute phases in order**: 0 → 1 (with notes) → 1B → 2 → 2B → 3 → 4 → 5 → 6 → 6B → 7 → 7B → 8
