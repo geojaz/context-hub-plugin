@@ -1248,7 +1248,7 @@ Phase [N] Complete:
 - Status: ✅ Met / ❌ Not met
 ```
 
-Ask user to confirm before proceeding.
+**Proceed automatically** to the next phase once the checkpoint is met. Do not wait for user confirmation.
 
 ---
 
