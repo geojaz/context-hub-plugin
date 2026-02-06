@@ -40,43 +40,37 @@ class GraphitiBackend(Backend):
 
     def query(self, query: str, group_id: str, limit: int) -> List[Memory]:
         """Search memories using Graphiti search_memory_nodes."""
-        # NOTE: Actual MCP call will be added when integrating with commands
-        # For now, this is a stub that returns the expected structure
+        # Call actual MCP tool
+        result = mcp__graphiti__search_nodes({
+            "query": query,
+            "group_ids": [group_id],  # Note: Graphiti uses group_ids (list)
+            "max_nodes": limit
+        })
 
-        # Future implementation:
-        # result = mcp__graphiti__search_memory_nodes({
-        #     "query": query,
-        #     "group_id": group_id,
-        #     "limit": limit
-        # })
-        # return self._parse_nodes_to_memories(result)
-
-        return []
+        return self._parse_nodes_to_memories(result)
 
     def search_facts(self, query: str, group_id: str, limit: int) -> List[Relationship]:
         """Search relationships using Graphiti search_memory_facts."""
-        # Future implementation:
-        # result = mcp__graphiti__search_memory_facts({
-        #     "query": query,
-        #     "group_id": group_id,
-        #     "limit": limit
-        # })
-        # return self._parse_facts_to_relationships(result)
+        result = mcp__graphiti__search_memory_facts({
+            "query": query,
+            "group_ids": [group_id],
+            "max_facts": limit
+        })
 
-        return []
+        return self._parse_facts_to_relationships(result)
 
     def save(self, content: str, group_id: str, **metadata) -> str:
         """Save episode using Graphiti add_memory."""
-        # Future implementation:
-        # result = mcp__graphiti__add_memory({
-        #     "episode_body": content,
-        #     "group_id": group_id,
-        #     "name": metadata.get("title", "Untitled"),
-        #     "source": "context-hub",
-        # })
-        # return result.get("episode_id", "")
+        result = mcp__graphiti__add_memory({
+            "name": metadata.get("title", "Untitled"),
+            "episode_body": content,
+            "group_id": group_id,
+            "source": metadata.get("source", "context-hub"),
+            "source_description": metadata.get("source_description", "Saved via context-hub-plugin")
+        })
 
-        return "stub-episode-id"
+        # Extract episode ID from result
+        return result.get("episode_id", result.get("uuid", "unknown"))
 
     def explore(self, starting_point: str, group_id: str, depth: int) -> KnowledgeGraph:
         """Explore knowledge graph from starting point."""
@@ -88,14 +82,12 @@ class GraphitiBackend(Backend):
 
     def list_recent(self, group_id: str, limit: int) -> List[Memory]:
         """List recent episodes using get_episodes."""
-        # Future implementation:
-        # result = mcp__graphiti__get_episodes({
-        #     "group_id": group_id,
-        #     "limit": limit
-        # })
-        # return self._parse_episodes_to_memories(result)
+        result = mcp__graphiti__get_episodes({
+            "group_ids": [group_id],
+            "max_episodes": limit
+        })
 
-        return []
+        return self._parse_episodes_to_memories(result)
 
     # Dynamic discovery
 
@@ -153,3 +145,23 @@ class GraphitiBackend(Backend):
             ))
 
         return relationships
+
+    def _parse_episodes_to_memories(self, result: dict) -> List[Memory]:
+        """Parse Graphiti episodes to Memory objects."""
+        memories = []
+
+        for episode in result.get("episodes", []):
+            memories.append(Memory(
+                id=episode.get("uuid", ""),
+                content=episode.get("content", episode.get("name", "")),
+                created_at=datetime.fromisoformat(
+                    episode.get("created_at", datetime.now().isoformat())
+                ),
+                metadata={
+                    "name": episode.get("name", ""),
+                    "source": episode.get("source", ""),
+                    "episode_type": "episode"
+                }
+            ))
+
+        return memories
