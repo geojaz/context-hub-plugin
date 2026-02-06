@@ -1,0 +1,2 @@
+# Core dependencies for memory adapter library
+pyyaml>=6.0

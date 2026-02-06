@@ -1,67 +1,43 @@
 ---
-description: List recent memories from Forgetful
+description: List recent memories from the knowledge base
 ---
 
-# List Recent Memories
+# Memory List
 
-Show the most recently created memories from Forgetful.
+List recent memories to see what context has been saved.
 
-## Your Task
+## Implementation
 
-Retrieve recent memories using `execute_forgetful_tool("get_recent_memories", {...})`.
+```python
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path.cwd() / 'lib'))
 
-**Arguments**: $ARGUMENTS
+from bridge import memory_list_recent, memory_get_config
 
-## Parameters
+config = memory_get_config()
+print(f"Backend: {config['backend']}, Group: {config['group_id']}\n")
 
-Parse the arguments for:
-- **Number**: If user specifies a count (e.g., "10", "last 5"), use that as `limit`
-- **Project**: If user mentions a project name, first list projects to get the ID, then filter
+# Get count from user input or default to 20
+limit = int("$ARGUMENTS") if "$ARGUMENTS".isdigit() else 20
 
-Default: `{"limit": 10}`
+# List recent
+memories = memory_list_recent(limit=limit)
+
+print(f"Found {len(memories)} recent memories:\n")
+
+for i, memory in enumerate(memories, 1):
+    title = memory['metadata'].get('title', memory['content'][:50])
+    print(f"{i}. {title}")
+    print(f"   Created: {memory['created_at'][:10]}")
+    if memory.get('importance'):
+        print(f"   Importance: {memory['importance']}")
+    print()
+```
 
 ## Response Format
 
-Present memories in a clean, scannable format:
-
-```
-Recent Memories (showing X of Y):
-
-1. [Title] (Importance: X, Created: date)
-   Tags: [tags]
-
-2. [Title] (Importance: X, Created: date)
-   Tags: [tags]
-
-...
-```
-
-## Optional Enhancements
-
-If the user asks for more detail on any memory, use `get_memory` to retrieve full content.
-
-If filtering by project and no project_id provided, first call:
-```
-execute_forgetful_tool("list_projects", {})
-```
-Then let the user select or infer from context.
-
-## Examples
-
-**Basic usage:**
-```
-/memory-list
-```
-Returns last 10 memories across all projects.
-
-**With count:**
-```
-/memory-list 5
-```
-Returns last 5 memories.
-
-**With project filter:**
-```
-/memory-list forgetful project
-```
-Lists projects, finds "forgetful" project ID, returns recent memories for that project.
+Show memories in chronological order (newest first) with:
+- Title or content preview
+- Creation date
+- Importance (if Forgetful backend)

@@ -1,107 +1,46 @@
 ---
-description: Deep exploration of the Forgetful knowledge graph
+description: Deep exploration of the knowledge graph
 ---
 
 # Memory Explore
 
-Perform deep knowledge graph traversal using a lightweight subagent.
+Traverse the knowledge graph from a starting point to discover connected concepts.
 
 **Query**: $ARGUMENTS
 
-Use the Task tool to launch a subagent:
+## Implementation
 
-```
-Task({
-  subagent_type: "general-purpose",
-  model: "haiku",
-  description: "Explore Forgetful graph",
-  prompt: <see below>
-})
-```
+```python
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path.cwd() / 'lib'))
 
-## Subagent Prompt
+from bridge import memory_explore, memory_get_config
 
-Use this prompt, substituting the user's query:
+config = memory_get_config()
+print(f"Backend: {config['backend']}, Group: {config['group_id']}\n")
 
-```
-Explore the Forgetful knowledge graph for: "{user query}"
+# Explore from starting point
+graph = memory_explore("$ARGUMENTS", depth=2)
 
-## Exploration Strategy
-- Explore DEEPLY - follow links aggressively, expand entities, traverse relationships
-- Be thorough - token cost is acceptable for comprehensive exploration
-- Track visited IDs to prevent cycles
-- But only SURFACE results relevant to the user's query in your final response
-- Filter out tangential discoveries - the main agent only needs focused, relevant context
+print(f"Explored knowledge graph from: $ARGUMENTS\n")
+print(f"Found {len(graph['nodes'])} nodes and {len(graph['edges'])} connections\n")
 
-Execute these phases sequentially:
+# Show nodes
+print("Key Concepts:")
+for node in graph['nodes'][:5]:
+    title = node['metadata'].get('title', node['content'][:50])
+    print(f"  - {title}")
 
-**Phase 1 - Semantic Entry:**
-execute_forgetful_tool("query_memory", {
-  "query": "{user query}",
-  "query_context": "Deep exploration via /memory-explore command",
-  "k": 5,
-  "include_links": true,
-  "max_links_per_primary": 5
-})
+print(f"\nConnections: {len(graph['edges'])} relationships discovered")
 
-Collect all primary_memories and linked_memories.
-
-**Phase 2 - Expand Memory Details:**
-For each primary memory, call:
-execute_forgetful_tool("get_memory", {"memory_id": <id>})
-
-Extract: document_ids, code_artifact_ids, project_ids, linked_memory_ids
-
-**Phase 3 - Entity Discovery:**
-For discovered project_ids, call:
-execute_forgetful_tool("list_entities", {"project_ids": [<ids>]})
-
-**Phase 4 - Entity Relationships:**
-For each relevant entity, call:
-execute_forgetful_tool("get_entity_relationships", {
-  "entity_id": <id>,
-  "direction": "both"
-})
-
-**Phase 5 - Entity-Linked Memories:**
-For each entity, call:
-execute_forgetful_tool("get_entity_memories", {"entity_id": <id>})
-
-Fetch any new memories not already visited.
-
----
-
-**IMPORTANT: Filter and summarize before returning.**
-You may have explored dozens of nodes - only include those RELEVANT to "{user query}".
-Return a structured summary:
-
-## Memories Found
-**Primary (N):**
-- [Title] (importance: X) - brief content snippet...
-
-**Linked (N):**
-- [Title] (importance: X) - connection type...
-
-**Entity-linked (N):**
-- [Title] - discovered via [Entity Name]...
-
-## Entities Discovered
-- [Name] (type) - X relationships, Y linked memories
-
-## Documents & Artifacts
-- [Title] (type/language) - if any found
-
-## Graph Summary
-- Total: X memories, Y entities, Z documents/artifacts
-- Key themes: [identified clusters]
-- Suggested follow-up: /memory-explore "[related query]"
+# Show some relationships
+for edge in graph['edges'][:5]:
+    print(f"  {edge['source']} --[{edge['type']}]--> {edge['target']}")
 ```
 
-## After Subagent Returns
+## Notes
 
-Present the knowledge graph summary to the user. The subagent has done the heavy lifting - you just need to display its findings.
-
-If the graph is sparse, suggest:
-- Broader search terms
-- Different project scope
-- Creating new memories to build the graph
+- **Graphiti**: Native graph traversal via search_facts
+- **Forgetful**: Manual traversal via linked_memory_ids
+- Depth=2 explores 2 levels of connections

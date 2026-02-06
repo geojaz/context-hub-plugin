@@ -1,159 +1,101 @@
 ---
-description: Save current context as an atomic memory in Forgetful
+description: Save current conversation context as a memory
 ---
 
-# Save Memory
+# Memory Save
 
-Create an atomic memory from the current conversation context.
+Save important context, decisions, or patterns to the knowledge base.
 
 ## Your Task
 
-1. Analyze the conversation for the key insight/decision/pattern to capture
-2. Check for existing related memories that might be affected
-3. Create the memory with proper curation
+Extract relevant context from the current conversation and save it using the memory adapter.
 
-**User guidance**: $ARGUMENTS
+## Implementation
 
-## Pre-Creation: Check for Existing Memories
+```python
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path.cwd() / 'lib'))
 
-Before creating, query for related memories:
-```
-execute_forgetful_tool("query_memory", {
-  "query": "<topic of new memory>",
-  "query_context": "Checking for existing memories before creating new one",
-  "k": 5,
-  "include_links": true
-})
-```
+from bridge import memory_save, memory_get_config
 
-Analyze results to determine if the new memory would:
-- **Invalidate** an existing memory (mark it obsolete with `mark_memory_obsolete`)
-- **Update** an existing memory (use `update_memory` instead of creating new)
-- **Supersede** an existing memory (create new, then mark old as obsolete with `superseded_by`)
-- **Complement** existing memories (create new and potentially `link_memories`)
+# Show config
+config = memory_get_config()
+print(f"Saving to backend: {config['backend']}, group: {config['group_id']}\n")
 
-## Atomic Memory Principles (Zettelkasten)
+# Extract context from conversation
+# Analyze the recent messages to determine:
+# - What decision was made or pattern discovered
+# - Why it matters (importance)
+# - Relevant keywords/tags
 
-Before creating, verify the memory passes the atomicity test:
-- Can you understand the idea at first glance?
-- Can you easily title it in 5-50 words?
-- Does it represent ONE concept/fact/decision?
+# Example structure:
+title = "<concise title of what's being saved>"
+content = """
+<detailed description of the context, decision, or pattern>
 
-## Memory Constraints
+Include:
+- What: The actual decision/pattern/insight
+- Why: Rationale or context
+- When: Temporal context if relevant
+- How: Implementation details if applicable
+"""
 
-- **Title**: Max 200 characters - short, searchable phrase
-- **Content**: Max 2000 characters (~300-400 words) - single concept
-- **Context**: Max 500 characters - WHY this matters
-- **Keywords**: Max 10 - for semantic clustering
-- **Tags**: Max 10 - for categorization
+importance = <1-10 score>  # Only for Forgetful backend
+keywords = ["keyword1", "keyword2"]
+tags = ["tag1", "tag2"]
 
-## Importance Scoring Guide
+# Save the memory
+memory_id = memory_save(
+    content=content,
+    title=title,
+    importance=importance,  # Ignored by Graphiti
+    keywords=keywords,      # Ignored by Graphiti
+    tags=tags              # Ignored by Graphiti
+)
 
-- **9-10**: Personal facts, foundational architectural patterns
-- **8-9**: Critical technical solutions, major architectural decisions
-- **7-8**: Useful patterns, strong preferences, tool choices
-- **6-7**: Project milestones, specific solutions
-- **5-6**: Minor context (use sparingly)
-
-## Process
-
-1. **Query** existing memories on the topic
-2. **Analyze** if this is new knowledge, an update, or supersedes existing
-3. **Draft** a memory following atomic principles
-4. **Present** the draft with curation plan:
-   ```
-   Existing memories found:
-   - Memory #42: "Previous auth decision" - will be marked obsolete (superseded)
-
-   Ready to save this memory:
-
-   Title: [proposed title]
-   Content: [proposed content]
-   Context: [why this matters]
-   Keywords: [keyword1, keyword2, ...]
-   Tags: [tag1, tag2, ...]
-   Importance: [score with reasoning]
-   Project: [if applicable]
-
-   Curation actions:
-   - Mark #42 obsolete (superseded by new memory)
-   - Link to #38 (related pattern)
-
-   Confirm? (y/n/edit)
-   ```
-5. **Execute** the curation plan after user confirms
-6. **Report** the result including any auto-linked memories
-7. **Review auto-links** - Check if auto-linked memories are relevant:
-   ```
-   Auto-linked memories:
-   - #102: "Database connection pooling" - Relevant? (keep)
-   - #87: "Unrelated old pattern" - Not relevant (will unlink)
-
-   Unlinking irrelevant auto-links...
-   ```
-   Use `unlink_memories` to remove irrelevant connections:
-   ```
-   execute_forgetful_tool("unlink_memories", {
-     "source_id": NEW_MEMORY_ID,
-     "target_id": IRRELEVANT_MEMORY_ID
-   })
-   ```
-
-## If Content is Too Long
-
-If the concept requires >2000 characters:
-1. Suggest using `create_document` for the full content
-2. Extract 3-5 atomic memories from it
-3. Link memories to the document via `document_ids`
-
-## Project Discovery (IMPORTANT)
-
-**Never assume project_id 1** - always discover the correct project first:
-
-```
-# 1. Get the current repo
-git remote get-url origin  # e.g., "git@github.com:owner/repo-name.git"
-
-# 2. Search for project by repo name
-execute_forgetful_tool("list_projects", {"repo_name": "owner/repo-name"})
-
-# 3. Use the discovered project_id, or omit if no matching project exists
+print(f"✅ Saved memory with ID: {memory_id}")
+print(f"   Title: {title}")
+print(f"   Backend: {config['backend']}")
 ```
 
-If no project exists for the current repo, either:
-- Create the memory **without** a project_id (global memory)
-- Ask the user which project to associate with
-- Create a new project first if appropriate
+## Extraction Guidelines
 
-## Example with Curation
+**What to save:**
+- ✅ Architectural decisions and rationale
+- ✅ Patterns you've implemented together
+- ✅ Important discoveries or insights
+- ✅ User preferences and requirements
+- ✅ Lessons learned from bugs or issues
 
-User: `/memory-save`
+**What NOT to save:**
+- ❌ Obvious/trivial information
+- ❌ Temporary implementation details
+- ❌ Information already well-documented elsewhere
 
-You first discover the project, query existing memories, find related content, and propose:
+**Importance Scoring (for Forgetful):**
+- 9-10: Critical decisions, user preferences, major patterns
+- 7-8: Important patterns, significant implementations
+- 5-6: Useful context, minor decisions
+- 1-4: Nice-to-know, low priority
+
+## Response Format
+
+Clearly communicate what was saved:
+
 ```
-Project discovery:
-- Repo: github.com/anthropics/claude-plugins
-- Found project: "Claude Plugins" (ID: 7)
+✅ Saved: <title>
 
-Found 2 related memories:
-- #89: "Plugin strategy: single plugin" (Importance: 7) - OUTDATED by this decision
-- #45: "MCP scope hierarchy" (Importance: 8) - Related context
+Content: <brief summary>
+Backend: <graphiti|forgetful>
+Group: <group-id>
+ID: <memory-id>
 
-Ready to save this memory:
-
-Title: "Plugin architecture: Two-plugin strategy (forgetful + context-hub)"
-Content: "Decided on two-plugin approach: (1) forgetful - standalone memory tools,
-(2) context-hub - orchestrates Forgetful + Context7 + WebSearch. Claude Code handles
-duplicate MCP configs gracefully via scope hierarchy."
-Context: "Architecture decision for shipping Forgetful as a Claude Code plugin"
-Keywords: [claude-code, plugin, forgetful, mcp, architecture]
-Tags: [decision, architecture]
-Importance: 8 (major architectural decision)
-Project: Claude Plugins (ID: 7)  <-- discovered, not assumed!
-
-Curation actions:
-- Mark #89 obsolete (superseded by new memory)
-- Link to #45 (MCP scope hierarchy context)
-
-Confirm? (y/n/edit)
+This memory will be available for future context retrieval.
 ```
+
+## Notes
+
+- **No project discovery needed**: Adapter auto-detects group_id from git repo
+- **Backend differences**: Graphiti auto-extracts entities, Forgetful uses explicit metadata
+- **Atomic memories**: Keep focused on one concept per save
