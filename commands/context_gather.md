@@ -1,24 +1,21 @@
 ---
-description: Gather comprehensive context from Forgetful Memory, Context7 docs, and web sources before planning or implementation
+description: Gather comprehensive context from all sources
 ---
 
-# Context Retrieval Command
+# Context Gather
 
-**Purpose**: Gather relevant context from Forgetful Memory, Context7, and web sources before planning or implementing code.
+Use the context-retrieval agent with memory adapter integration.
 
-**Usage**: `/context_gather <detailed task description>`
+**Task**: $ARGUMENTS
 
----
+## Implementation
 
-Use the **context-retrieval** subagent to gather context for the following task:
+Launch the context-retrieval agent with the task description.
 
-{TASK_DESCRIPTION}
+The agent will:
+1. Query memory backend (auto-selected: Graphiti or Forgetful)
+2. Read linked code artifacts and files
+3. Query Context7 for framework docs
+4. Search web if needed
 
-The context-retrieval subagent will:
-- Search Forgetful Memory across ALL projects for relevant patterns, decisions, and code
-- Read linked code artifacts and documents
-- Query Context7 for framework-specific guidance if applicable
-- Explore the knowledge graph to find connected patterns
-- Return a focused summary with code snippets and architectural insights
-
-Wait for the subagent to return its findings before proceeding.
+The agent has been updated to use the memory adapter automatically.
