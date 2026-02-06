@@ -1,0 +1,13 @@
+memory:
+  # Backend selection
+  backend: "graphiti"  # or "forgetful"
+
+  # Group ID strategy
+  group_id: "auto"  # or explicit value like "my-project"
+
+  # Optional: Backend-specific settings
+  graphiti:
+    endpoint: "http://localhost:8000/mcp"
+
+  forgetful:
+    # Future settings
