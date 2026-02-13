@@ -1,4 +1,34 @@
 {
-  "marketplace_id": "geojaz-graphiti-context-hub",
-  "marketplace_url": "https://github.com/geojaz/graphiti-context-hub"
+  "name": "geojaz-graphiti-plugins",
+  "owner": {
+    "name": "Eric Hole",
+    "email": ""
+  },
+  "plugins": [
+    {
+      "name": "graphiti-context-hub",
+      "source": {
+        "source": "github",
+        "repo": "geojaz/graphiti-context-hub"
+      },
+      "description": "Context retrieval using Graphiti knowledge graph, Context7 docs, and Serena symbol analysis",
+      "version": "3.0.0",
+      "author": {
+        "name": "Eric Hole"
+      },
+      "repository": "https://github.com/geojaz/graphiti-context-hub",
+      "license": "MIT",
+      "keywords": [
+        "context",
+        "memory",
+        "documentation",
+        "context7",
+        "serena",
+        "graphiti",
+        "knowledge-graph",
+        "code-analysis"
+      ],
+      "category": "productivity"
+    }
+  ]
 }
