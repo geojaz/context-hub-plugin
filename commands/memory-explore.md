@@ -4,43 +4,160 @@ description: Deep exploration of the knowledge graph
 
 # Memory Explore
 
-Traverse the knowledge graph from a starting point to discover connected concepts.
+Traverse the Graphiti knowledge graph from a starting point to discover connected concepts.
 
-**Query**: $ARGUMENTS
+## Your Task
+
+Explore the knowledge graph starting from: **$ARGUMENTS**
 
 ## Implementation
 
+**Step 1: Load config and detect group_id**
+
 ```python
-import sys
+import yaml
 from pathlib import Path
-sys.path.insert(0, str(Path.cwd() / 'lib'))
+import subprocess
 
-from bridge import memory_explore, memory_get_config
+# Load config
+config_path = Path.cwd() / '.context-hub.yaml'
+if config_path.exists():
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+else:
+    config = {'graphiti': {'group_id': 'auto'}}
 
-config = memory_get_config()
-print(f"Backend: {config['backend']}, Group: {config['group_id']}\n")
+group_id_setting = config.get('graphiti', {}).get('group_id', 'auto')
 
-# Explore from starting point
-graph = memory_explore("$ARGUMENTS", depth=2)
+# Detect group_id if set to auto
+if group_id_setting == 'auto':
+    # Try to get from git repo name
+    try:
+        result = subprocess.run(
+            ['git', 'remote', 'get-url', 'origin'],
+            capture_output=True,
+            text=True,
+            cwd=Path.cwd()
+        )
+        if result.returncode == 0:
+            remote = result.stdout.strip()
+            # Extract repo name from URL
+            if '/' in remote:
+                group_id = remote.split('/')[-1].replace('.git', '')
+            else:
+                group_id = Path.cwd().name
+        else:
+            group_id = Path.cwd().name
+    except:
+        group_id = Path.cwd().name
+else:
+    group_id = group_id_setting
 
-print(f"Explored knowledge graph from: $ARGUMENTS\n")
-print(f"Found {len(graph['nodes'])} nodes and {len(graph['edges'])} connections\n")
+print(f"Using group_id: {group_id}\n")
+```
 
-# Show nodes
-print("Key Concepts:")
-for node in graph['nodes'][:5]:
-    title = node['metadata'].get('title', node['content'][:50])
-    print(f"  - {title}")
+**Step 2: Explore graph from starting point**
 
-print(f"\nConnections: {len(graph['edges'])} relationships discovered")
+```python
+query = "$ARGUMENTS"
 
-# Show some relationships
-for edge in graph['edges'][:5]:
-    print(f"  {edge['source']} --[{edge['type']}]--> {edge['target']}")
+# First, find the starting node
+node_result = mcp__graphiti__search_nodes({
+    "query": query,
+    "group_ids": [group_id],
+    "max_nodes": 1
+})
+
+nodes = node_result.get('nodes', [])
+if not nodes:
+    print(f"No starting node found for: {query}")
+    print("Try a different search term or use /memory-search to find concepts first.")
+    exit(0)
+
+starting_node = nodes[0]
+center_node_uuid = starting_node.get('uuid')
+
+print(f"Starting from: {starting_node.get('name', 'Unknown')}")
+print(f"Summary: {starting_node.get('summary', '')[:150]}...\n")
+
+# Now explore facts around this node
+facts_result = mcp__graphiti__search_memory_facts({
+    "query": query,
+    "group_ids": [group_id],
+    "center_node_uuid": center_node_uuid,
+    "max_facts": 20
+})
+
+# Display discovered relationships
+facts = facts_result.get('facts', [])
+print(f"Discovered {len(facts)} related facts:\n")
+
+for i, fact in enumerate(facts, 1):
+    fact_text = fact.get('fact', '')
+    # Extract relationship info if available
+    source = fact.get('source_node', {}).get('name', '')
+    target = fact.get('target_node', {}).get('name', '')
+
+    print(f"{i}. {fact_text}")
+    if source and target:
+        print(f"   {source} → {target}")
+    print()
+
+# Also show connected nodes
+connected_nodes = set()
+for fact in facts:
+    if 'source_node' in fact:
+        connected_nodes.add(fact['source_node'].get('name', ''))
+    if 'target_node' in fact:
+        connected_nodes.add(fact['target_node'].get('name', ''))
+
+connected_nodes.discard('')  # Remove empty names
+connected_nodes.discard(starting_node.get('name', ''))  # Remove starting node
+
+if connected_nodes:
+    print(f"\nConnected concepts ({len(connected_nodes)}):")
+    for node_name in sorted(connected_nodes)[:10]:
+        print(f"  - {node_name}")
+```
+
+## Response Format
+
+Present exploration results with:
+1. Starting node (name and summary)
+2. Number of facts discovered
+3. List of facts/relationships
+4. Connected concepts discovered
+
+Example:
+```
+Using group_id: context-hub-plugin
+
+Starting from: Graphiti Backend
+Summary: Graph-based memory storage system that automatically extracts entities and relationships...
+
+Discovered 8 related facts:
+
+1. Graphiti Backend replaced Forgetful for better entity extraction
+   Forgetful Backend → Graphiti Backend
+
+2. Memory commands use Graphiti MCP tools directly
+   Memory Commands → Graphiti MCP
+
+3. Graphiti supports group_id for project isolation
+   Graphiti Backend → Group ID System
+
+Connected concepts (5):
+  - Forgetful Backend
+  - Group ID System
+  - Memory Commands
+  - MCP Tools
+  - Project Isolation
 ```
 
 ## Notes
 
-- **Graphiti**: Native graph traversal via search_facts
-- **Forgetful**: Manual traversal via linked_memory_ids
-- Depth=2 explores 2 levels of connections
+- **No adapter layer**: Calls Graphiti MCP directly
+- **Two-step process**: First find starting node, then explore facts around it
+- **Center node search**: Uses center_node_uuid to focus exploration
+- **Graph traversal**: Graphiti's search_memory_facts does native graph traversal
+- **Relationship discovery**: Automatically finds connections between concepts

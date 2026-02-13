@@ -4,7 +4,7 @@ description: Gather comprehensive context from all sources
 
 # Context Gather
 
-Use the context-retrieval agent with memory adapter integration.
+Use the context-retrieval agent to gather relevant context for a task.
 
 **Task**: $ARGUMENTS
 
@@ -13,9 +13,9 @@ Use the context-retrieval agent with memory adapter integration.
 Launch the context-retrieval agent with the task description.
 
 The agent will:
-1. Query memory backend (auto-selected: Graphiti or Forgetful)
+1. Query Graphiti memory backend for relevant information
 2. Read linked code artifacts and files
-3. Query Context7 for framework docs
+3. Query Context7 for framework documentation
 4. Search web if needed
 
-The agent has been updated to use the memory adapter automatically.
+The agent automatically uses Graphiti MCP for memory operations.
