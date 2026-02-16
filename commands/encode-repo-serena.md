@@ -146,13 +146,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'lib'))
 from lib.config import get_git_repo_name
 
 # Get group_id
-group_id = get_git_repo_name() or Path.cwd().name
-print(f"Group ID: {group_id}\n")
+GROUP_ID = get_git_repo_name() or Path.cwd().name
+print(f"Group ID: {GROUP_ID}\n")
 
 # Query existing episodes
 results = mcp__graphiti__search_memory_facts({
     "query": "architecture patterns",
-    "group_ids": [group_id],
+    "group_ids": [GROUP_ID],
     "max_facts": 10
 })
 print(f"Found {len(results)} existing facts")
@@ -180,18 +180,17 @@ Report findings before proceeding.
 
 ## Phase 1: Project Foundation (5-10 episodes)
 
-### Get Group ID
+### Load config and detect repo
 
-Get the group_id from git repo:
+```bash
+[ -f "$HOME/.config/claude/graphiti-context-hub.conf" ] && source "$HOME/.config/claude/graphiti-context-hub.conf"
+[ -f ".context-hub.conf" ] && source ".context-hub.conf"
 
-```python
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'lib'))
-from lib.config import get_git_repo_name
+GROUP_ID="${GRAPHITI_GROUP_ID:-main}"
+REPO_NAME=$(git remote get-url origin 2>/dev/null | sed 's/.*\///' | sed 's/\.git$//' || basename "$PWD")
 
-group_id = get_git_repo_name() or Path.cwd().name
-print(f"Group ID: {group_id}")
+echo "Encoding repo: $REPO_NAME"
+echo "Into group: $GROUP_ID"
 ```
 
 ### Create Foundation Episodes
@@ -200,8 +199,8 @@ print(f"Group ID: {group_id}")
 # 1. Project Overview
 mcp__graphiti__add_memory({
     "name": "Project Overview",
-    "episode_body": "[Project purpose, what problems it solves, main features]",
-    "group_id": group_id,
+    "episode_body": f"Repo: {REPO_NAME}\n\n[Project purpose, what problems it solves, main features]",
+    "group_id": GROUP_ID,
     "source": "text",
     "source_description": "foundation"
 })
@@ -209,8 +208,8 @@ mcp__graphiti__add_memory({
 # 2. Technology Stack
 mcp__graphiti__add_memory({
     "name": "Technology Stack",
-    "episode_body": "Language: Python 3.12. Frameworks: FastAPI, Streamlit. Database: ClickHouse. ML: XGBoost.",
-    "group_id": group_id,
+    "episode_body": f"Repo: {REPO_NAME}\n\nLanguage: Python 3.12. Frameworks: FastAPI, Streamlit. Database: ClickHouse. ML: XGBoost.",
+    "group_id": GROUP_ID,
     "source": "text",
     "source_description": "foundation"
 })
@@ -218,8 +217,8 @@ mcp__graphiti__add_memory({
 # 3. Architecture Pattern
 mcp__graphiti__add_memory({
     "name": "Architecture Pattern",
-    "episode_body": "6-layer architecture: Data→Domain→Processing→ML→Strategy→Presentation",
-    "group_id": group_id,
+    "episode_body": f"Repo: {REPO_NAME}\n\n6-layer architecture: Data→Domain→Processing→ML→Strategy→Presentation",
+    "group_id": GROUP_ID,
     "source": "text",
     "source_description": "foundation"
 })
@@ -227,8 +226,8 @@ mcp__graphiti__add_memory({
 # 4. Development Setup
 mcp__graphiti__add_memory({
     "name": "Development Setup",
-    "episode_body": "[Setup instructions, environment requirements, how to run]",
-    "group_id": group_id,
+    "episode_body": f"Repo: {REPO_NAME}\n\n[Setup instructions, environment requirements, how to run]",
+    "group_id": GROUP_ID,
     "source": "text",
     "source_description": "foundation"
 })
@@ -236,8 +235,8 @@ mcp__graphiti__add_memory({
 # 5. Testing Strategy
 mcp__graphiti__add_memory({
     "name": "Testing Strategy",
-    "episode_body": "[Testing approach, frameworks used, how to run tests]",
-    "group_id": group_id,
+    "episode_body": f"Repo: {REPO_NAME}\n\n[Testing approach, frameworks used, how to run tests]",
+    "group_id": GROUP_ID,
     "source": "text",
     "source_description": "foundation"
 })
@@ -304,11 +303,13 @@ Use Context7 to confirm:
 ```python
 mcp__graphiti__add_memory({
     "name": "[Project] - Dependencies and External Libraries",
-    "episode_body": """Language: [lang] [version]. Core frameworks: [list with roles].
+    "episode_body": f"""Repo: {REPO_NAME}
+
+Language: [lang] [version]. Core frameworks: [list with roles].
 Data/storage: [databases]. HTTP/API: [frameworks].
 Dev tools: [testing, linting, build].
 Rationale: [why chosen, if documented].""",
-    "group_id": group_id,
+    "group_id": GROUP_ID,
     "source": "text",
     "source_description": "dependency analysis"
 })
@@ -364,8 +365,12 @@ For each architectural layer discovered:
 ```python
 mcp__graphiti__add_memory({
     "name": "[Project] - [Layer] Architecture",
-    "episode_body": "Key symbols: [list]. Relationships: [discovered references]. Pattern: [identified pattern].",
-    "group_id": group_id,
+    "episode_body": f"""Repo: {REPO_NAME}
+File: {file_path}
+
+Symbols:
+{symbols}""",
+    "group_id": GROUP_ID,
     "source": "text",
     "source_description": "Serena symbol analysis"
 })
@@ -395,13 +400,15 @@ Document major components discovered via Serena:
 # Component episode example
 mcp__graphiti__add_memory({
     "name": "[Project] - AuthenticationService Component",
-    "episode_body": """AuthenticationService handles token validation and user context injection.
+    "episode_body": f"""Repo: {REPO_NAME}
+
+AuthenticationService handles token validation and user context injection.
 Location: src/services/auth.py
 Dependencies: FastAPI, JWT library
 Used by: All API endpoints requiring auth
 Reference count: 42 (high usage across codebase)
 Key methods: validate_token(), get_user_context()""",
-    "group_id": group_id,
+    "group_id": GROUP_ID,
     "source": "text",
     "source_description": "component analysis"
 })
@@ -409,12 +416,14 @@ Key methods: validate_token(), get_user_context()""",
 # Framework/library episode example
 mcp__graphiti__add_memory({
     "name": "[Project] - FastAPI Framework Integration",
-    "episode_body": """FastAPI is the core HTTP framework.
+    "episode_body": f"""Repo: {REPO_NAME}
+
+FastAPI is the core HTTP framework.
 Version: 0.104.1
 Used for: REST API endpoints, WebSocket connections
 Integration: Dependency injection via Depends()
 Major components using it: All service endpoints""",
-    "group_id": group_id,
+    "group_id": GROUP_ID,
     "source": "text",
     "source_description": "framework integration"
 })
@@ -427,7 +436,9 @@ Capture relationships in episode content (Graphiti extracts them automatically):
 ```python
 mcp__graphiti__add_memory({
     "name": "[Project] - Component Dependency Graph",
-    "episode_body": """Component dependencies in [Project]:
+    "episode_body": f"""Repo: {REPO_NAME}
+
+Component dependencies in [Project]:
 
 AuthenticationService → FastAPI (uses for routing)
 DataService → PostgreSQL (connects for storage)
@@ -438,7 +449,7 @@ Relationship strengths based on Serena reference counts:
 - High usage (30+ refs): AuthenticationService→FastAPI
 - Medium usage (10-30 refs): DataService→PostgreSQL
 - Low usage (<10 refs): MLPipeline→XGBoost""",
-    "group_id": group_id,
+    "group_id": GROUP_ID,
     "source": "text",
     "source_description": "relationship analysis"
 })
@@ -553,11 +564,13 @@ For each significant pattern (used 3+ times):
 ```python
 mcp__graphiti__add_memory({
     "name": "[Project] - [Pattern Name] Pattern",
-    "episode_body": """Pattern: [name]. Used for: [purpose].
+    "episode_body": f"""Repo: {REPO_NAME}
+
+Pattern: [name]. Used for: [purpose].
 Locations: [list files/classes using it].
 Implementation: [brief description of how it works].
 Usage count: [X] occurrences across codebase.""",
-    "group_id": group_id,
+    "group_id": GROUP_ID,
     "source": "text",
     "source_description": "pattern analysis"
 })
@@ -644,12 +657,14 @@ For each major feature:
 ```python
 mcp__graphiti__add_memory({
     "name": "[Project] - [Feature Name] Implementation",
-    "episode_body": """Feature: [user-facing description].
+    "episode_body": f"""Repo: {REPO_NAME}
+
+Feature: [user-facing description].
 Entry point: [file:function].
 Flow: [step-by-step through components].
 Key components: [list classes/functions involved].
 Configuration: [relevant settings if any].""",
-    "group_id": group_id,
+    "group_id": GROUP_ID,
     "source": "text",
     "source_description": "feature analysis"
 })
@@ -721,11 +736,13 @@ Create 1 episode per documented decision:
 ```python
 mcp__graphiti__add_memory({
     "name": "[Project] - Decision: [Topic]",
-    "episode_body": """Decision: [what was decided].
+    "episode_body": f"""Repo: {REPO_NAME}
+
+Decision: [what was decided].
 Alternatives considered: [if documented].
 Rationale: [QUOTE from documentation].
 Source: [file path and line number].""",
-    "group_id": group_id,
+    "group_id": GROUP_ID,
     "source": "text",
     "source_description": "documented decision"
 })
@@ -790,7 +807,9 @@ For each key pattern/utility:
 ```python
 mcp__graphiti__add_memory({
     "name": "[Project] - Async Generator Pattern (Python)",
-    "episode_body": """# Async Generator Pattern (Python)
+    "episode_body": f"""Repo: {REPO_NAME}
+
+# Async Generator Pattern (Python)
 
 What: Streams data chunks asynchronously without loading entire dataset in memory.
 When: Processing large datasets that don't fit in RAM.
@@ -812,7 +831,7 @@ async def stream_results(self, query: str) -> AsyncGenerator[Batch, None]:
 ```
 
 Referenced by: MLPipeline, DataExporter, ReportGenerator (Serena ref count: 15)""",
-    "group_id": group_id,
+    "group_id": GROUP_ID,
     "source": "text",
     "source_description": "code example"
 })
@@ -877,7 +896,9 @@ Collect from all `get_symbols_overview` and `find_symbol` calls during Phase 2:
 ```python
 mcp__graphiti__add_memory({
     "name": "[Project] - Symbol Index",
-    "episode_body": """# [Project] - Symbol Index
+    "episode_body": f"""Repo: {REPO_NAME}
+
+# [Project] - Symbol Index
 
 Generated: [date]
 Total: X classes, Y interfaces, Z functions
@@ -913,7 +934,7 @@ Total: X classes, Y interfaces, Z functions
 ## Key Interfaces (by implementation count)
 1. BaseRepository - 3 implementations
 2. Handler - 2 implementations""",
-    "group_id": group_id,
+    "group_id": GROUP_ID,
     "source": "text",
     "source_description": "symbol index"
 })
@@ -941,8 +962,8 @@ For content >400 words (detailed guides, comprehensive analysis), save as long-f
 ```python
 mcp__graphiti__add_memory({
     "name": "[Project] - [Topic] Reference",
-    "episode_body": "<full documentation>",
-    "group_id": group_id,
+    "episode_body": f"Repo: {REPO_NAME}\n\n<full documentation>",
+    "group_id": GROUP_ID,
     "source": "text",
     "source_description": "reference documentation"
 })
@@ -969,7 +990,9 @@ Combine insights from:
 ```python
 mcp__graphiti__add_memory({
     "name": "[Project] - Architecture Reference",
-    "episode_body": """# [Project] - Architecture Reference
+    "episode_body": f"""Repo: {REPO_NAME}
+
+# [Project] - Architecture Reference
 
 Generated: [date]
 
@@ -1035,7 +1058,7 @@ Unit tests in tests/ directory. Integration tests use pytest fixtures.
 ## Design Decisions
 
 [Only if documented in repo - from Phase 5]""",
-    "group_id": group_id,
+    "group_id": GROUP_ID,
     "source": "text",
     "source_description": "architecture reference"
 })
@@ -1118,33 +1141,33 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'lib'))
 from lib.config import get_git_repo_name
 
-group_id = get_git_repo_name() or Path.cwd().name
+GROUP_ID = get_git_repo_name() or Path.cwd().name
 
 # Test basic queries
 results = mcp__graphiti__search_memory_facts({
     "query": "How do I add a new API endpoint?",
-    "group_ids": [group_id],
+    "group_ids": [GROUP_ID],
     "max_facts": 5
 })
 print(f"Found {len(results)} facts for endpoint query")
 
 results = mcp__graphiti__search_memory_facts({
     "query": "What dependencies does this project use?",
-    "group_ids": [group_id],
+    "group_ids": [GROUP_ID],
     "max_facts": 5
 })
 print(f"Found {len(results)} facts for dependency query")
 
 results = mcp__graphiti__search_memory_facts({
     "query": "architecture patterns",
-    "group_ids": [group_id],
+    "group_ids": [GROUP_ID],
     "max_facts": 10
 })
 print(f"Found {len(results)} architecture facts")
 
 results = mcp__graphiti__search_memory_facts({
     "query": "code examples async",
-    "group_ids": [group_id],
+    "group_ids": [GROUP_ID],
     "max_facts": 5
 })
 print(f"Found {len(results)} code example facts")

@@ -75,29 +75,66 @@ Installation options:
 For detailed setup: https://github.com/getzep/graphiti
 ```
 
-## Step 3: Create Configuration File
+**Step 2: Create or verify global config**
 
-Create `.context-hub.yaml` in your project root:
+```bash
+# Create global config directory
+mkdir -p "$HOME/.config/claude"
 
-```python
-import yaml
-from pathlib import Path
+GLOBAL_CONFIG="$HOME/.config/claude/graphiti-context-hub.conf"
 
-config = {
-    'memory': {
-        'backend': 'graphiti',
-        'group_id': 'auto'
-    }
-}
+if [ -f "$GLOBAL_CONFIG" ]; then
+    echo "✓ Global config exists: $GLOBAL_CONFIG"
+    source "$GLOBAL_CONFIG"
+    echo "  GRAPHITI_GROUP_ID=${GRAPHITI_GROUP_ID:-main}"
+    echo "  GRAPHITI_ENDPOINT=${GRAPHITI_ENDPOINT:-http://localhost:8000}"
+else
+    echo "Creating global config..."
+    cat > "$GLOBAL_CONFIG" << 'EOF'
+# Graphiti Context Hub Configuration
+GRAPHITI_GROUP_ID=main
+GRAPHITI_ENDPOINT=http://localhost:8000
+EOF
+    echo "✓ Created $GLOBAL_CONFIG"
+    echo "  GRAPHITI_GROUP_ID=main"
+    echo "  GRAPHITI_ENDPOINT=http://localhost:8000"
+fi
 
-config_path = Path.cwd() / '.context-hub.yaml'
-with open(config_path, 'w') as f:
-    yaml.dump(config, f, default_flow_style=False)
-
-print(f"✅ Created config at: {config_path}")
+echo ""
 ```
 
-## Step 4: Test Graphiti Connection
+**Step 3: Check local config (optional)**
+
+```bash
+LOCAL_CONFIG=".context-hub.conf"
+
+if [ -f "$LOCAL_CONFIG" ]; then
+    echo "✓ Local config exists (overrides global)"
+    source "$LOCAL_CONFIG"
+    echo "  GRAPHITI_GROUP_ID=${GRAPHITI_GROUP_ID}"
+else
+    echo "ℹ No local config (using global settings)"
+    echo "  To override: cp .context-hub.conf.example .context-hub.conf"
+fi
+
+echo ""
+```
+
+**Step 4: Detect repository context**
+
+```bash
+if git remote get-url origin &>/dev/null; then
+    REPO_NAME=$(git remote get-url origin | sed 's/.*\///' | sed 's/\.git$//')
+else
+    REPO_NAME=$(basename "$PWD")
+fi
+
+echo "Detected repository: $REPO_NAME"
+echo "Using group_id: ${GRAPHITI_GROUP_ID:-main}"
+echo ""
+```
+
+## Step 5: Test Graphiti Connection
 
 Verify connectivity using MCP tools:
 
@@ -112,28 +149,6 @@ except Exception as e:
     print("Ensure Graphiti MCP server is running and configured correctly")
 ```
 
-## Step 5: Verify Group ID Auto-Detection
-
-Test that group_id is correctly detected:
-
-```python
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent / 'lib'))
-from lib.config import get_git_repo_name
-
-# Check git detection
-git_name = get_git_repo_name()
-if git_name:
-    print(f"✅ Git repository detected: {git_name}")
-    print(f"   This will be used as your group_id")
-else:
-    fallback = Path.cwd().name
-    print(f"⚠️  No git repository found")
-    print(f"   Using directory name as group_id: {fallback}")
-```
-
 ## Step 6: Verify Complete Setup
 
 Report comprehensive status:
@@ -146,7 +161,8 @@ print("=" * 50)
 print("Context Hub Setup Status")
 print("=" * 50)
 print(f"Memory Backend: graphiti")
-print(f"Config File:    {Path.cwd() / '.context-hub.yaml'}")
+print(f"Global Config:  ~/.config/claude/graphiti-context-hub.conf")
+print(f"Local Config:   .context-hub.conf (optional)")
 print()
 
 # Check MCP status
@@ -248,32 +264,37 @@ claude plugins install context7 --marketplace pleaseai/claude-code-plugins
 ### Configuration Issues
 
 **Config file not found:**
-- Ensure `.context-hub.yaml` is in current directory or project root
+- Global config should be at `~/.config/claude/graphiti-context-hub.conf`
+- Run this command again to create it
 - Check file permissions
 
 **Group ID not detected:**
 - Verify git repository exists: `git remote -v`
-- Override by setting `group_id: "your-project-name"` in config
+- Override by creating `.context-hub.conf` with `GRAPHITI_GROUP_ID=your-project-name`
 
 ## Configuration Reference
 
-### Minimal Config
-```yaml
-memory:
-  backend: "graphiti"
-  group_id: "auto"
+### Global Config
+Location: `~/.config/claude/graphiti-context-hub.conf`
+
+```bash
+# Graphiti Context Hub Configuration
+GRAPHITI_GROUP_ID=main
+GRAPHITI_ENDPOINT=http://localhost:8000
 ```
 
-### Full Config Example
-```yaml
-memory:
-  backend: "graphiti"
-  group_id: "my-project"  # or "auto" for auto-detection
+### Local Config (Optional)
+Location: `.context-hub.conf` (project root)
+
+```bash
+# Override global settings for this project
+GRAPHITI_GROUP_ID=my-project
+GRAPHITI_ENDPOINT=http://localhost:8000
 ```
 
 ## Notes
 
-- Configuration is searched in order: `./.context-hub.yaml`, `<project-root>/.context-hub.yaml`
+- Configuration priority: local `.context-hub.conf` > global `~/.config/claude/graphiti-context-hub.conf`
 - MCP server configs are stored in `~/.claude.json`
 - Serena and Context7 are plugins, not MCPs - install via `claude plugins install`
-- Group ID auto-detection uses: 1) git repo name, 2) directory name (fallback)
+- Group ID can be set in config files or will use 'main' as default

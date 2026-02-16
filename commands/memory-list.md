@@ -12,48 +12,14 @@ List recent memories for the current project.
 
 ## Implementation
 
-**Step 1: Load config and detect group_id**
+**Step 1: Load config**
 
-```python
-import yaml
-from pathlib import Path
-import subprocess
+```bash
+[ -f "$HOME/.config/claude/graphiti-context-hub.conf" ] && source "$HOME/.config/claude/graphiti-context-hub.conf"
+[ -f ".context-hub.conf" ] && source ".context-hub.conf"
 
-# Load config
-config_path = Path.cwd() / '.context-hub.yaml'
-if config_path.exists():
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-else:
-    config = {'graphiti': {'group_id': 'auto'}}
-
-group_id_setting = config.get('graphiti', {}).get('group_id', 'auto')
-
-# Detect group_id if set to auto
-if group_id_setting == 'auto':
-    # Try to get from git repo name
-    try:
-        result = subprocess.run(
-            ['git', 'remote', 'get-url', 'origin'],
-            capture_output=True,
-            text=True,
-            cwd=Path.cwd()
-        )
-        if result.returncode == 0:
-            remote = result.stdout.strip()
-            # Extract repo name from URL
-            if '/' in remote:
-                group_id = remote.split('/')[-1].replace('.git', '')
-            else:
-                group_id = Path.cwd().name
-        else:
-            group_id = Path.cwd().name
-    except:
-        group_id = Path.cwd().name
-else:
-    group_id = group_id_setting
-
-print(f"Using group_id: {group_id}\n")
+GROUP_ID="${GRAPHITI_GROUP_ID:-main}"
+echo "Listing episodes from group: $GROUP_ID"
 ```
 
 **Step 2: List recent episodes from Graphiti**
@@ -64,7 +30,7 @@ limit = int("$ARGUMENTS") if "$ARGUMENTS".strip().isdigit() else 20
 
 # Call Graphiti MCP tool directly
 result = mcp__graphiti__get_episodes({
-    "group_ids": [group_id],
+    "group_ids": [GROUP_ID],
     "max_episodes": limit
 })
 

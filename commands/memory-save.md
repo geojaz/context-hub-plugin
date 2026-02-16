@@ -12,86 +12,42 @@ Extract relevant context from the current conversation and save it using Graphit
 
 ## Implementation
 
-**Step 1: Load config and detect group_id**
+**Step 1: Load config and detect repo**
 
-```python
-import yaml
-from pathlib import Path
-import subprocess
+```bash
+[ -f "$HOME/.config/claude/graphiti-context-hub.conf" ] && source "$HOME/.config/claude/graphiti-context-hub.conf"
+[ -f ".context-hub.conf" ] && source ".context-hub.conf"
 
-# Load config
-config_path = Path.cwd() / '.context-hub.yaml'
-if config_path.exists():
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-else:
-    config = {'graphiti': {'group_id': 'auto'}}
+GROUP_ID="${GRAPHITI_GROUP_ID:-main}"
+REPO_NAME=$(git remote get-url origin 2>/dev/null | sed 's/.*\///' | sed 's/\.git$//' || basename "$PWD")
 
-group_id_setting = config.get('graphiti', {}).get('group_id', 'auto')
-
-# Detect group_id if set to auto
-if group_id_setting == 'auto':
-    # Try to get from git repo name
-    try:
-        result = subprocess.run(
-            ['git', 'remote', 'get-url', 'origin'],
-            capture_output=True,
-            text=True,
-            cwd=Path.cwd()
-        )
-        if result.returncode == 0:
-            remote = result.stdout.strip()
-            # Extract repo name from URL
-            if '/' in remote:
-                group_id = remote.split('/')[-1].replace('.git', '')
-            else:
-                group_id = Path.cwd().name
-        else:
-            group_id = Path.cwd().name
-    except:
-        group_id = Path.cwd().name
-else:
-    group_id = group_id_setting
-
-print(f"Using group_id: {group_id}\n")
+echo "group_id: $GROUP_ID"
+echo "repo: $REPO_NAME"
 ```
 
-**Step 2: Extract context and save to Graphiti**
+**Step 2: Save to Graphiti with repo context**
+
+Ask user what to save (title and content), then:
 
 ```python
-# Analyze the recent messages to determine:
-# - What decision was made or pattern discovered
-# - Why it matters (importance)
-# - Relevant context
+# Format episode body with repo prefix
+episode_body = f"""Repo: {REPO_NAME}
 
-# Example structure:
-title = "<concise title of what's being saved>"
-content = """
-<detailed description of the context, decision, or pattern>
-
-Include:
-- What: The actual decision/pattern/insight
-- Why: Rationale or context
-- When: Temporal context if relevant
-- How: Implementation details if applicable
+{content_from_user}
 """
 
-# Combine title and content for Graphiti
-episode_body = f"{title}\n\n{content}"
-
-# Call Graphiti MCP tool directly
+# Save episode using GROUP_ID from Bash
 result = mcp__graphiti__add_memory({
-    "name": title,
+    "name": title_from_user,
     "episode_body": episode_body,
-    "group_id": group_id,
-    "source": "text",
-    "source_description": "conversation context"
+    "group_id": GROUP_ID,
+    "source": "context-hub",
+    "source_description": f"Manual save from {REPO_NAME}"
 })
 
-print(f"✅ Saved memory to Graphiti")
-print(f"   Title: {title}")
-print(f"   Group: {group_id}")
-print(f"\nGraphiti will automatically extract entities and relationships from this memory.")
+episode_id = result.get('episode_id', result.get('uuid', 'unknown'))
+print(f"✓ Saved to group '{GROUP_ID}' with repo tag '{REPO_NAME}'")
+print(f"  Episode ID: {episode_id}")
 ```
 
 ## Extraction Guidelines

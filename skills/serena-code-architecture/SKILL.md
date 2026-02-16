@@ -99,47 +99,24 @@ mcp__plugin_serena_serena__find_symbol({
 
 Store findings using Graphiti MCP:
 
+```bash
+# Load config (run once)
+[ -f "$HOME/.config/claude/graphiti-context-hub.conf" ] && source "$HOME/.config/claude/graphiti-context-hub.conf"
+[ -f ".context-hub.conf" ] && source ".context-hub.conf"
+
+GROUP_ID="${GRAPHITI_GROUP_ID:-main}"
+REPO_NAME=$(git remote get-url origin 2>/dev/null | sed 's/.*\///' | sed 's/\.git$//' || basename "$PWD")
+```
+
 ```python
-# Load config and detect group_id
-import yaml
-from pathlib import Path
-import subprocess
-
-config_path = Path.cwd() / '.context-hub.yaml'
-if config_path.exists():
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-else:
-    config = {'graphiti': {'group_id': 'auto'}}
-
-group_id_setting = config.get('graphiti', {}).get('group_id', 'auto')
-
-if group_id_setting == 'auto':
-    try:
-        result = subprocess.run(
-            ['git', 'remote', 'get-url', 'origin'],
-            capture_output=True,
-            text=True,
-            cwd=Path.cwd()
-        )
-        if result.returncode == 0:
-            remote = result.stdout.strip()
-            if '/' in remote:
-                group_id = remote.split('/')[-1].replace('.git', '')
-            else:
-                group_id = Path.cwd().name
-        else:
-            group_id = Path.cwd().name
-    except:
-        group_id = Path.cwd().name
-else:
-    group_id = group_id_setting
-
 # Save architectural finding to Graphiti
+# IMPORTANT: Prefix episode_body with "Repo: {REPO_NAME}\n\n"
 result = mcp__graphiti__add_memory({
     "name": "AuthService: Core authentication component",
-    "episode_body": "AuthService handles JWT validation, user sessions, and OAuth flows. Dependencies: UserRepository, TokenService, CacheService. Used by: all API endpoints via middleware.",
-    "group_id": group_id,
+    "episode_body": f"""Repo: {REPO_NAME}
+
+AuthService handles JWT validation, user sessions, and OAuth flows. Dependencies: UserRepository, TokenService, CacheService. Used by: all API endpoints via middleware.""",
+    "group_id": GROUP_ID,
     "source": "serena-analysis",
     "source_description": "Code architecture analysis via Serena"
 })
@@ -155,14 +132,14 @@ Explore relationships between components:
 # Search for related entities
 nodes_result = mcp__graphiti__search_nodes({
     "query": "AuthService",
-    "group_ids": [group_id],
+    "group_ids": [GROUP_ID],
     "max_nodes": 10
 })
 
 # Get facts showing relationships
 facts_result = mcp__graphiti__search_memory_facts({
     "query": "AuthService dependencies relationships",
-    "group_ids": [group_id],
+    "group_ids": [GROUP_ID],
     "max_facts": 20
 })
 ```
@@ -216,8 +193,10 @@ mcp__plugin_serena_serena__find_referencing_symbols({
 # 5. Create architecture memory
 result = mcp__graphiti__add_memory({
     "name": "FastAPI app structure: Routers + Dependencies",
-    "episode_body": "App uses router-based organization with dependency injection. Routers: /users, /auth, /products. Dependencies: get_current_user, get_db. All routes require auth except /auth/login.",
-    "group_id": group_id,
+    "episode_body": f"""Repo: {REPO_NAME}
+
+App uses router-based organization with dependency injection. Routers: /users, /auth, /products. Dependencies: get_current_user, get_db. All routes require auth except /auth/login.""",
+    "group_id": GROUP_ID,
     "source": "serena-analysis",
     "source_description": "FastAPI architecture analysis"
 })

@@ -22,84 +22,75 @@ allowed-tools: Read, Glob, Grep
 
 ## How to Query
 
+**Step 1: Get config and repo context** (run once):
+
+```bash
+[ -f "$HOME/.config/claude/graphiti-context-hub.conf" ] && source "$HOME/.config/claude/graphiti-context-hub.conf"
+[ -f ".context-hub.conf" ] && source ".context-hub.conf"
+
+GROUP_ID="${GRAPHITI_GROUP_ID:-main}"
+REPO_NAME=$(git remote get-url origin 2>/dev/null | sed 's/.*\///' | sed 's/\.git$//' || basename "$PWD")
+```
+
+**Step 2: Search Graphiti** (use GROUP_ID from above):
+
 ```python
-import yaml
-from pathlib import Path
-import subprocess
-
-# Load config and detect group_id
-config_path = Path.cwd() / '.context-hub.yaml'
-if config_path.exists():
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-else:
-    config = {'graphiti': {'group_id': 'auto'}}
-
-group_id_setting = config.get('graphiti', {}).get('group_id', 'auto')
-
-# Auto-detect group_id if needed
-if group_id_setting == 'auto':
-    try:
-        result = subprocess.run(
-            ['git', 'remote', 'get-url', 'origin'],
-            capture_output=True,
-            text=True,
-            cwd=Path.cwd()
-        )
-        if result.returncode == 0:
-            remote = result.stdout.strip()
-            if '/' in remote:
-                group_id = remote.split('/')[-1].replace('.git', '')
-            else:
-                group_id = Path.cwd().name
-        else:
-            group_id = Path.cwd().name
-    except:
-        group_id = Path.cwd().name
-else:
-    group_id = group_id_setting
-
 # Search nodes (entities)
 nodes_result = mcp__graphiti__search_nodes({
     "query": "authentication patterns",
-    "group_ids": [group_id],
+    "group_ids": [GROUP_ID],  # Always "main"
     "max_nodes": 10
 })
 
 # Search facts (relationships)
 facts_result = mcp__graphiti__search_memory_facts({
     "query": "authentication flow",
-    "group_ids": [group_id],
+    "group_ids": [GROUP_ID],
     "max_facts": 20
 })
 ```
 
 ## How to Save
 
+**Step 1: Get config** (if not already loaded):
+
+```bash
+[ -f "$HOME/.config/claude/graphiti-context-hub.conf" ] && source "$HOME/.config/claude/graphiti-context-hub.conf"
+[ -f ".context-hub.conf" ] && source ".context-hub.conf"
+
+GROUP_ID="${GRAPHITI_GROUP_ID:-main}"
+REPO_NAME=$(git remote get-url origin 2>/dev/null | sed 's/.*\///' | sed 's/\.git$//' || basename "$PWD")
+```
+
+**Step 2: Save episode with repo tagging**:
+
 ```python
-# Save an episode (Graphiti automatically extracts entities)
+# IMPORTANT: Prefix episode_body with "Repo: {REPO_NAME}\n\n"
 result = mcp__graphiti__add_memory({
     "name": "Auth Decision: JWT with httponly cookies",
-    "episode_body": """
-    Decision: Using JWT tokens stored in httponly cookies.
+    "episode_body": f"""Repo: {REPO_NAME}
 
-    Rationale:
-    - XSS protection via httponly flag
-    - CSRF protection via SameSite attribute
-    - Automatic token rotation on refresh
+Decision: Using JWT tokens stored in httponly cookies.
 
-    Implementation:
-    - Access token: 15 min expiry
-    - Refresh token: 7 day expiry
-    - Redis for token storage
-    """,
-    "group_id": group_id,
+Rationale:
+- XSS protection via httponly flag
+- CSRF protection via SameSite attribute
+- Automatic token rotation on refresh
+
+Implementation:
+- Access token: 15 min expiry
+- Refresh token: 7 day expiry
+- Redis for token storage
+""",
+    "group_id": GROUP_ID,  # Always "main"
     "source": "context-hub",
     "source_description": "Architectural decision"
 })
 
 episode_id = result.get('episode_id', result.get('uuid'))
 ```
+
+**Key Pattern**: Always prefix `episode_body` with `Repo: {REPO_NAME}\n\n` to tag which repository the memory belongs to.
 
 ## Graphiti Features
 
@@ -120,15 +111,20 @@ episode_id = result.get('episode_id', result.get('uuid'))
 
 ## Configuration
 
-Set group_id in `.context-hub.yaml`:
+**Global config** (optional): `~/.config/claude/graphiti-context-hub.conf`
 
-```yaml
-graphiti:
-  group_id: "auto"  # or explicit: "my-project"
-  endpoint: "http://localhost:8000"  # optional
+```bash
+GRAPHITI_GROUP_ID=main
+GRAPHITI_ENDPOINT=http://localhost:8000
 ```
 
-Group ID is auto-detected from git repository name when set to "auto".
+**Repo-level override** (optional): `.context-hub.conf`
+
+```bash
+GRAPHITI_GROUP_ID=main
+```
+
+**Defaults**: `GROUP_ID` defaults to "main". Repo name is auto-detected from git remote.
 
 ## Common Patterns
 
@@ -137,14 +133,14 @@ Group ID is auto-detected from git repository name when set to "auto".
 # Search for related patterns
 nodes = mcp__graphiti__search_nodes({
     "query": f"implementing {feature_name}",
-    "group_ids": [group_id],
+    "group_ids": [GROUP_ID],
     "max_nodes": 10
 })
 
 # Check for architectural decisions
 facts = mcp__graphiti__search_memory_facts({
     "query": f"{feature_name} architecture",
-    "group_ids": [group_id],
+    "group_ids": [GROUP_ID],
     "max_facts": 20
 })
 ```
@@ -153,16 +149,17 @@ facts = mcp__graphiti__search_memory_facts({
 ```python
 mcp__graphiti__add_memory({
     "name": f"Decision: {decision_title}",
-    "episode_body": f"""
-    Decision: {what_you_decided}
+    "episode_body": f"""Repo: {REPO_NAME}
 
-    Context: {why_this_matters}
+Decision: {what_you_decided}
 
-    Rationale: {reasoning}
+Context: {why_this_matters}
 
-    Trade-offs: {alternatives_considered}
-    """,
-    "group_id": group_id,
+Rationale: {reasoning}
+
+Trade-offs: {alternatives_considered}
+""",
+    "group_id": GROUP_ID,
     "source": "context-hub"
 })
 ```

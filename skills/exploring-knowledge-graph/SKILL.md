@@ -18,46 +18,19 @@ allowed-tools: Read, Glob, Grep
 
 **Step 1: Find starting point**
 
+```bash
+[ -f "$HOME/.config/claude/graphiti-context-hub.conf" ] && source "$HOME/.config/claude/graphiti-context-hub.conf"
+[ -f ".context-hub.conf" ] && source ".context-hub.conf"
+
+GROUP_ID="${GRAPHITI_GROUP_ID:-main}"
+REPO_NAME=$(git remote get-url origin 2>/dev/null | sed 's/.*\///' | sed 's/\.git$//' || basename "$PWD")
+```
+
 ```python
-import yaml
-from pathlib import Path
-import subprocess
-
-# Load config and detect group_id (standard pattern)
-config_path = Path.cwd() / '.context-hub.yaml'
-if config_path.exists():
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-else:
-    config = {'graphiti': {'group_id': 'auto'}}
-
-group_id_setting = config.get('graphiti', {}).get('group_id', 'auto')
-
-if group_id_setting == 'auto':
-    try:
-        result = subprocess.run(
-            ['git', 'remote', 'get-url', 'origin'],
-            capture_output=True,
-            text=True,
-            cwd=Path.cwd()
-        )
-        if result.returncode == 0:
-            remote = result.stdout.strip()
-            if '/' in remote:
-                group_id = remote.split('/')[-1].replace('.git', '')
-            else:
-                group_id = Path.cwd().name
-        else:
-            group_id = Path.cwd().name
-    except:
-        group_id = Path.cwd().name
-else:
-    group_id = group_id_setting
-
 # Find starting nodes
 starting_nodes = mcp__graphiti__search_nodes({
     "query": "authentication architecture",
-    "group_ids": [group_id],
+    "group_ids": [GROUP_ID],
     "max_nodes": 5
 })
 ```
@@ -68,7 +41,7 @@ starting_nodes = mcp__graphiti__search_nodes({
 # Get facts related to the topic
 facts = mcp__graphiti__search_memory_facts({
     "query": "authentication dependencies relationships",
-    "group_ids": [group_id],
+    "group_ids": [GROUP_ID],
     "max_facts": 30
 })
 
@@ -84,7 +57,7 @@ for fact in facts.get('facts', []):
 ```python
 # Get episodes (chronological context)
 episodes = mcp__graphiti__get_episodes({
-    "group_ids": [group_id],
+    "group_ids": [GROUP_ID],
     "max_episodes": 20
 })
 

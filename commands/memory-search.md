@@ -12,59 +12,41 @@ Search Graphiti for: **$ARGUMENTS**
 
 ## Implementation
 
-**Step 1: Load config and detect group_id**
+**Step 1: Load config and detect repo**
 
-```python
-import yaml
-from pathlib import Path
-import subprocess
+```bash
+# Load global config
+[ -f "$HOME/.config/claude/graphiti-context-hub.conf" ] && source "$HOME/.config/claude/graphiti-context-hub.conf"
 
-# Load config
-config_path = Path.cwd() / '.context-hub.yaml'
-if config_path.exists():
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-else:
-    config = {'graphiti': {'group_id': 'auto'}}
+# Load local config (overrides global)
+[ -f ".context-hub.conf" ] && source ".context-hub.conf"
 
-group_id_setting = config.get('graphiti', {}).get('group_id', 'auto')
+# Set default
+GROUP_ID="${GRAPHITI_GROUP_ID:-main}"
 
-# Detect group_id if set to auto
-if group_id_setting == 'auto':
-    # Try to get from git repo name
-    try:
-        result = subprocess.run(
-            ['git', 'remote', 'get-url', 'origin'],
-            capture_output=True,
-            text=True,
-            cwd=Path.cwd()
-        )
-        if result.returncode == 0:
-            remote = result.stdout.strip()
-            # Extract repo name from URL
-            if '/' in remote:
-                group_id = remote.split('/')[-1].replace('.git', '')
-            else:
-                group_id = Path.cwd().name
-        else:
-            group_id = Path.cwd().name
-    except:
-        group_id = Path.cwd().name
-else:
-    group_id = group_id_setting
+# Detect repo name
+if git remote get-url origin &>/dev/null; then
+    REPO_NAME=$(git remote get-url origin | sed 's/.*\///' | sed 's/\.git$//')
+else
+    REPO_NAME=$(basename "$PWD")
+fi
 
-print(f"Using group_id: {group_id}\n")
+echo "Searching in group_id: $GROUP_ID"
+echo "Current repo: $REPO_NAME"
+echo ""
 ```
 
 **Step 2: Search Graphiti**
 
+Using the GROUP_ID from Step 1, search the knowledge graph:
+
 ```python
 query = "$ARGUMENTS"
 
-# Call Graphiti MCP tool directly
+# GROUP_ID comes from Bash output above
 result = mcp__graphiti__search_nodes({
     "query": query,
-    "group_ids": [group_id],
+    "group_ids": [GROUP_ID],  # Now always "main"
     "max_nodes": 10
 })
 

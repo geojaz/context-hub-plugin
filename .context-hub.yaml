@@ -1,3 +1,6 @@
+# DEPRECATED: This format is still supported but .context-hub.conf is preferred
+# Bash config (.context-hub.conf) will override this if present
+
 graphiti:
-  group_id: "auto"  # auto-detect from git repo, or set explicit name
-  endpoint: "http://localhost:8000"  # optional, defaults to localhost:8000
+  group_id: "main"  # Changed from "auto" to "main"
+  endpoint: "http://localhost:8000"
