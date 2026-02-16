@@ -17,42 +17,15 @@ The main agent is about to plan or implement something. Your job is to gather RE
 
 **Query the knowledge graph** using Graphiti MCP tools:
 
+```bash
+# Load group_id from config using Bash
+source ~/.config/claude/graphiti-context-hub.conf 2>/dev/null || source .context-hub.conf 2>/dev/null || GRAPHITI_GROUP_ID=main
+echo "Using group_id: $GRAPHITI_GROUP_ID"
+```
+
 ```python
-import yaml
-from pathlib import Path
-import subprocess
-
-# Load config and detect group_id
-config_path = Path.cwd() / '.context-hub.yaml'
-if config_path.exists():
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-else:
-    config = {'graphiti': {'group_id': 'auto'}}
-
-group_id_setting = config.get('graphiti', {}).get('group_id', 'auto')
-
-# Detect group_id
-if group_id_setting == 'auto':
-    try:
-        result = subprocess.run(
-            ['git', 'remote', 'get-url', 'origin'],
-            capture_output=True,
-            text=True,
-            cwd=Path.cwd()
-        )
-        if result.returncode == 0:
-            remote = result.stdout.strip()
-            if '/' in remote:
-                group_id = remote.split('/')[-1].replace('.git', '')
-            else:
-                group_id = Path.cwd().name
-        else:
-            group_id = Path.cwd().name
-    except:
-        group_id = Path.cwd().name
-else:
-    group_id = group_id_setting
+# Use the loaded group_id in your queries
+group_id = os.environ.get('GRAPHITI_GROUP_ID', 'main')
 
 # Search nodes
 nodes_result = mcp__graphiti__search_nodes({
@@ -68,6 +41,8 @@ facts_result = mcp__graphiti__search_memory_facts({
     "max_facts": 20
 })
 ```
+
+**Note**: All memories include repository context automatically. Query results will show which repo each memory originated from.
 
 **Tips:**
 - Nodes are entities (classes, functions, concepts)
@@ -193,9 +168,9 @@ Return a focused markdown summary that provides the main agent with everything t
 **Task**: "Implement OAuth2 for FastAPI MCP server"
 
 **Your Process**:
-1. Query Graphiti:
+1. Query Graphiti (using user-level group_id "main"):
 ```python
-# Direct MCP tool call with auto-detected group_id
+group_id = os.environ.get('GRAPHITI_GROUP_ID', 'main')
 nodes_result = mcp__graphiti__search_nodes({
     "query": "OAuth FastAPI MCP JWT authentication",
     "group_ids": [group_id],
@@ -208,24 +183,44 @@ facts_result = mcp__graphiti__search_memory_facts({
     "max_facts": 20
 })
 ```
+
+**Example Result** (with repo tagging):
+```
+Memory: OAuth2 JWT Implementation
+Repo: fastapi-mcp-server
+Pattern: Used FastAPI OAuth2PasswordBearer with JWT tokens
+[... more details ...]
+```
+
 2. Read linked code files mentioned in node metadata
 3. Query Context7: "fastapi oauth2 jwt"
-4. Return: OAuth patterns + code snippets + FastAPI Context7 guidance
+4. Return: OAuth patterns + code snippets + FastAPI Context7 guidance + repo context
 
 **Task**: "Add PostgreSQL RLS for multi-tenant"
 
 **Your Process**:
-1. Query Graphiti:
+1. Query Graphiti (searches across all repos):
 ```python
+group_id = os.environ.get('GRAPHITI_GROUP_ID', 'main')
 nodes_result = mcp__graphiti__search_nodes({
     "query": "PostgreSQL multi-tenant RLS row level security",
     "group_ids": [group_id],
     "max_nodes": 10
 })
 ```
+
+**Example Result** (with repo tagging):
+```
+Memory: Multi-tenant RLS Implementation
+Repo: saas-platform
+Decision: Used PostgreSQL RLS with tenant_id column
+Files: migrations/001_add_rls_policies.sql
+[... more details ...]
+```
+
 2. Read any linked SQL migration files
 3. Query Context7: "postgresql row level security"
-4. Return: RLS patterns + migration strategy + PostgreSQL docs
+4. Return: RLS patterns + migration strategy + PostgreSQL docs + which repos use RLS
 
 ## Success Criteria
 

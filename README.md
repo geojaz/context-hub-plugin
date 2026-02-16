@@ -15,15 +15,18 @@ claude plugins install /path/to/graphiti-context-hub
 
 ## Configuration
 
-Create `.context-hub.yaml`:
+**Global Config** (recommended): `~/.config/claude/graphiti-context-hub.conf`
 
-```yaml
-graphiti:
-  group_id: "auto"  # auto-detect from git repo, or set explicit name
-  endpoint: "http://localhost:8000"  # optional, defaults to localhost:8000
+```bash
+GRAPHITI_GROUP_ID=main
+GRAPHITI_ENDPOINT=http://localhost:8000
 ```
 
-**Group ID**: Isolates this project's knowledge graph. Set to `"auto"` to auto-detect from git repository name, or set explicit name like `"my-project"`.
+**Local Override** (optional): `.context-hub.conf` in repo
+
+Run `/context-hub-setup` to create global config automatically.
+
+**Group ID**: Uses "main" for unified cross-repo knowledge graph. All memories include repo context for flexible filtering.
 
 ## Prerequisites
 
@@ -139,6 +142,24 @@ Uses Serena's LSP-powered analysis:
 - **Cross-file analysis** - Component connections
 
 Stores findings as episodes in Graphiti for future retrieval.
+
+### Repository Tagging
+
+All memories automatically include repository context:
+
+```
+Repo: graphiti-context-hub
+
+Decision: Implemented user-level group_id
+
+Rationale: Enables cross-repo pattern discovery
+```
+
+**Benefits**:
+- Search by repo: "authentication in graphiti-context-hub"
+- Search globally: "authentication patterns" finds across all repos
+- See which projects use similar patterns
+- Graphiti extracts repo names as entities automatically
 
 ## Example Usage
 
